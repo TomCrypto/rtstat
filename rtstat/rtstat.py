@@ -92,6 +92,10 @@ class TG585v8:
             `{Username}[group]=>`      when inside a command group
 
         Upon login before any commands it will be in the first format.
+
+        Note prepending `:` to a command will make it run as a top-level
+        command (e.g. `:xdsl info` will always work, no matter where you
+        might be in a command group). This is useful for automation.
         """
         self.conn = telnetlib.Telnet(host=host, port=port)
         self.username = username or 'Administrator'
@@ -126,20 +130,13 @@ class TG585v8:
     def __enter__(self):
         return self
 
-    def reset_level(self):
-        """Navigates to the top-level command group."""
-        for _ in range(4):  # arbitrary max depth
-            self.send('..')
-
     def keepalive(self):
         """Keeps the telnet connection active."""
-        self.send('help')  # always works
+        self.send(':help')  # always works
 
     def get_xdsl_info(self):
         """Gets the current XDSL information for this router."""
-        self.reset_level()
-
-        lines = self.send('xdsl info').split('\n')
+        lines = self.send(':xdsl info').split('\n')
         kv = parse_key_value(lines)
 
         uptime_str = kv['Up time (Days hh:mm:ss)']
@@ -164,9 +161,7 @@ class TG585v8:
 
     def get_iflist_info(self):
         """Gets the current iflist information for this router."""
-        self.reset_level()
-
-        lines = self.send('ip iflist').split('\n')[1:]  # remove header line
+        lines = self.send(':ip iflist').split('\n')[1:]  # remove header line
         info = {}
 
         for line in lines:
